@@ -1,4 +1,4 @@
-package net.simplifiedcoding.mlkitsample.facedetector
+package com.vijay.mlkitsample.facedetector
 
 import android.graphics.Canvas
 import android.graphics.Color

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace "net.simplifiedcoding.mlkitsample"
+    namespace "com.vijay.mlkitsample"
     compileSdk 33
 
     defaultConfig {
-        applicationId "net.simplifiedcoding.mlkitsample"
+        applicationId "com.vijay.mlkitsample"
         minSdk 24
         targetSdk 33
         versionCode 1

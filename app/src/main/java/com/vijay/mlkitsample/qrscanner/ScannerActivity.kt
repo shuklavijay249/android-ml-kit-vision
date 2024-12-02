@@ -1,34 +1,29 @@
-package net.simplifiedcoding.mlkitsample.facemeshdetector
+package com.vijay.mlkitsample.qrscanner
 
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import com.google.mlkit.vision.barcode.BarcodeScanner
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.face.FaceDetection
-import com.google.mlkit.vision.face.FaceDetector
-import com.google.mlkit.vision.face.FaceDetectorOptions
-import com.google.mlkit.vision.facemesh.FaceMeshDetection
-import com.google.mlkit.vision.facemesh.FaceMeshDetector
-import com.google.mlkit.vision.facemesh.FaceMeshDetectorOptions
-import net.simplifiedcoding.mlkitsample.CameraXViewModel
-import net.simplifiedcoding.mlkitsample.R
-import net.simplifiedcoding.mlkitsample.databinding.ActivityFaceDetectionBinding
-import net.simplifiedcoding.mlkitsample.facedetector.FaceBox
-import net.simplifiedcoding.mlkitsample.facedetector.FaceDetectionActivity
+import com.vijay.mlkitsample.CameraXViewModel
+import com.vijay.mlkitsample.databinding.ActivityScannerBinding
 import java.util.concurrent.Executors
 
-class FaceMeshDetectionActivity : AppCompatActivity() {
+class ScannerActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityFaceDetectionBinding
+    private lateinit var binding: ActivityScannerBinding
     private lateinit var cameraSelector: CameraSelector
     private lateinit var processCameraProvider: ProcessCameraProvider
     private lateinit var cameraPreview: Preview
@@ -38,12 +33,11 @@ class FaceMeshDetectionActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        binding = ActivityFaceDetectionBinding.inflate(layoutInflater)
+        binding = ActivityScannerBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         cameraSelector =
-            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_FRONT).build()
+            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
+
         cameraXViewModel.value.processCameraProvider.observe(this) { provider ->
             processCameraProvider = provider
             bindCameraPreview()
@@ -66,8 +60,11 @@ class FaceMeshDetectionActivity : AppCompatActivity() {
     }
 
     private fun bindInputAnalyser() {
-        val detector = FaceMeshDetection.getClient()
-
+        val barcodeScanner: BarcodeScanner = BarcodeScanning.getClient(
+            BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                .build()
+        )
         imageAnalysis = ImageAnalysis.Builder()
             .setTargetRotation(binding.previewView.display.rotation)
             .build()
@@ -75,7 +72,7 @@ class FaceMeshDetectionActivity : AppCompatActivity() {
         val cameraExecutor = Executors.newSingleThreadExecutor()
 
         imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-            processImageProxy(detector, imageProxy)
+            processImageProxy(barcodeScanner, imageProxy)
         }
 
         try {
@@ -88,24 +85,48 @@ class FaceMeshDetectionActivity : AppCompatActivity() {
     }
 
     @SuppressLint("UnsafeOptInUsageError")
-    private fun processImageProxy(detector: FaceMeshDetector, imageProxy: ImageProxy) {
+    private fun processImageProxy(
+        barcodeScanner: BarcodeScanner,
+        imageProxy: ImageProxy
+    ) {
         val inputImage =
             InputImage.fromMediaImage(imageProxy.image!!, imageProxy.imageInfo.rotationDegrees)
-        detector.process(inputImage).addOnSuccessListener { faces ->
-            faces.forEach { face ->
-                //@Todo draw face mesh here
+
+        barcodeScanner.process(inputImage)
+            .addOnSuccessListener { barcodes ->
+                if (barcodes.isNotEmpty()) {
+                    showBarcodeInfo(barcodes.first())
+                }
             }
-        }.addOnFailureListener {
-            it.printStackTrace()
-        }.addOnCompleteListener {
-            imageProxy.close()
+            .addOnFailureListener {
+                Log.e(TAG, it.message ?: it.toString())
+            }.addOnCompleteListener {
+                imageProxy.close()
+            }
+    }
+
+    private fun showBarcodeInfo(barcode: Barcode) {
+        when (barcode.valueType) {
+            Barcode.TYPE_URL -> {
+                binding.textViewQrType.text = "URL"
+                binding.textViewQrContent.text = barcode.rawValue
+            }
+            Barcode.TYPE_CONTACT_INFO -> {
+                binding.textViewQrType.text = "Contact"
+                binding.textViewQrContent.text = barcode.contactInfo.toString()
+            }
+            else -> {
+                binding.textViewQrType.text = "Other"
+                binding.textViewQrContent.text = barcode.rawValue
+            }
         }
     }
 
     companion object {
-        private val TAG = FaceMeshDetectionActivity::class.simpleName
-        fun startActivity(context: Context) {
-            Intent(context, FaceMeshDetectionActivity::class.java).also {
+        private val TAG = ScannerActivity::class.simpleName
+
+        fun startScanner(context: Context) {
+            Intent(context, ScannerActivity::class.java).also {
                 context.startActivity(it)
             }
         }

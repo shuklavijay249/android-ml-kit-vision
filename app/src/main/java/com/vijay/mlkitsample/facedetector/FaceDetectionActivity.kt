@@ -1,4 +1,4 @@
-package net.simplifiedcoding.mlkitsample.qrscanner
+package com.vijay.mlkitsample.facedetector
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -12,18 +12,17 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import com.google.mlkit.vision.barcode.BarcodeScanner
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import net.simplifiedcoding.mlkitsample.CameraXViewModel
-import net.simplifiedcoding.mlkitsample.databinding.ActivityScannerBinding
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
+import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.vijay.mlkitsample.CameraXViewModel
+import com.vijay.mlkitsample.databinding.ActivityFaceDetectionBinding
 import java.util.concurrent.Executors
 
-class ScannerActivity : AppCompatActivity() {
+class FaceDetectionActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityScannerBinding
+    private lateinit var binding: ActivityFaceDetectionBinding
     private lateinit var cameraSelector: CameraSelector
     private lateinit var processCameraProvider: ProcessCameraProvider
     private lateinit var cameraPreview: Preview
@@ -31,13 +30,14 @@ class ScannerActivity : AppCompatActivity() {
 
     private val cameraXViewModel = viewModels<CameraXViewModel>()
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityScannerBinding.inflate(layoutInflater)
+        binding = ActivityFaceDetectionBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        cameraSelector =
-            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
 
+        cameraSelector =
+            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_FRONT).build()
         cameraXViewModel.value.processCameraProvider.observe(this) { provider ->
             processCameraProvider = provider
             bindCameraPreview()
@@ -60,9 +60,10 @@ class ScannerActivity : AppCompatActivity() {
     }
 
     private fun bindInputAnalyser() {
-        val barcodeScanner: BarcodeScanner = BarcodeScanning.getClient(
-            BarcodeScannerOptions.Builder()
-                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+        val detector = FaceDetection.getClient(
+            FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
                 .build()
         )
         imageAnalysis = ImageAnalysis.Builder()
@@ -72,7 +73,7 @@ class ScannerActivity : AppCompatActivity() {
         val cameraExecutor = Executors.newSingleThreadExecutor()
 
         imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-            processImageProxy(barcodeScanner, imageProxy)
+            processImageProxy(detector, imageProxy)
         }
 
         try {
@@ -85,48 +86,26 @@ class ScannerActivity : AppCompatActivity() {
     }
 
     @SuppressLint("UnsafeOptInUsageError")
-    private fun processImageProxy(
-        barcodeScanner: BarcodeScanner,
-        imageProxy: ImageProxy
-    ) {
+    private fun processImageProxy(detector: FaceDetector, imageProxy: ImageProxy) {
         val inputImage =
             InputImage.fromMediaImage(imageProxy.image!!, imageProxy.imageInfo.rotationDegrees)
-
-        barcodeScanner.process(inputImage)
-            .addOnSuccessListener { barcodes ->
-                if (barcodes.isNotEmpty()) {
-                    showBarcodeInfo(barcodes.first())
-                }
+        detector.process(inputImage).addOnSuccessListener { faces ->
+            binding.graphicOverlay.clear()
+            faces.forEach { face ->
+                val faceBox = FaceBox(binding.graphicOverlay, face, imageProxy.image!!.cropRect)
+                binding.graphicOverlay.add(faceBox)
             }
-            .addOnFailureListener {
-                Log.e(TAG, it.message ?: it.toString())
-            }.addOnCompleteListener {
-                imageProxy.close()
-            }
-    }
-
-    private fun showBarcodeInfo(barcode: Barcode) {
-        when (barcode.valueType) {
-            Barcode.TYPE_URL -> {
-                binding.textViewQrType.text = "URL"
-                binding.textViewQrContent.text = barcode.rawValue
-            }
-            Barcode.TYPE_CONTACT_INFO -> {
-                binding.textViewQrType.text = "Contact"
-                binding.textViewQrContent.text = barcode.contactInfo.toString()
-            }
-            else -> {
-                binding.textViewQrType.text = "Other"
-                binding.textViewQrContent.text = barcode.rawValue
-            }
+        }.addOnFailureListener {
+            it.printStackTrace()
+        }.addOnCompleteListener {
+            imageProxy.close()
         }
     }
 
     companion object {
-        private val TAG = ScannerActivity::class.simpleName
-
-        fun startScanner(context: Context) {
-            Intent(context, ScannerActivity::class.java).also {
+        private val TAG = FaceDetectionActivity::class.simpleName
+        fun startActivity(context: Context) {
+            Intent(context, FaceDetectionActivity::class.java).also {
                 context.startActivity(it)
             }
         }

@@ -1,12 +1,12 @@
-package net.simplifiedcoding.mlkitsample.facedetector
+package com.vijay.mlkitsample.facemeshdetector
 
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -16,11 +16,17 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
-import net.simplifiedcoding.mlkitsample.CameraXViewModel
-import net.simplifiedcoding.mlkitsample.databinding.ActivityFaceDetectionBinding
+import com.google.mlkit.vision.facemesh.FaceMeshDetection
+import com.google.mlkit.vision.facemesh.FaceMeshDetector
+import com.google.mlkit.vision.facemesh.FaceMeshDetectorOptions
+import com.vijay.mlkitsample.CameraXViewModel
+import com.vijay.mlkitsample.R
+import com.vijay.mlkitsample.databinding.ActivityFaceDetectionBinding
+import com.vijay.mlkitsample.facedetector.FaceBox
+import com.vijay.mlkitsample.facedetector.FaceDetectionActivity
 import java.util.concurrent.Executors
 
-class FaceDetectionActivity : AppCompatActivity() {
+class FaceMeshDetectionActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityFaceDetectionBinding
     private lateinit var cameraSelector: CameraSelector
@@ -30,9 +36,9 @@ class FaceDetectionActivity : AppCompatActivity() {
 
     private val cameraXViewModel = viewModels<CameraXViewModel>()
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         binding = ActivityFaceDetectionBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -60,12 +66,8 @@ class FaceDetectionActivity : AppCompatActivity() {
     }
 
     private fun bindInputAnalyser() {
-        val detector = FaceDetection.getClient(
-            FaceDetectorOptions.Builder()
-                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-                .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
-                .build()
-        )
+        val detector = FaceMeshDetection.getClient()
+
         imageAnalysis = ImageAnalysis.Builder()
             .setTargetRotation(binding.previewView.display.rotation)
             .build()
@@ -86,14 +88,12 @@ class FaceDetectionActivity : AppCompatActivity() {
     }
 
     @SuppressLint("UnsafeOptInUsageError")
-    private fun processImageProxy(detector: FaceDetector, imageProxy: ImageProxy) {
+    private fun processImageProxy(detector: FaceMeshDetector, imageProxy: ImageProxy) {
         val inputImage =
             InputImage.fromMediaImage(imageProxy.image!!, imageProxy.imageInfo.rotationDegrees)
         detector.process(inputImage).addOnSuccessListener { faces ->
-            binding.graphicOverlay.clear()
             faces.forEach { face ->
-                val faceBox = FaceBox(binding.graphicOverlay, face, imageProxy.image!!.cropRect)
-                binding.graphicOverlay.add(faceBox)
+                //@Todo draw face mesh here
             }
         }.addOnFailureListener {
             it.printStackTrace()
@@ -103,9 +103,9 @@ class FaceDetectionActivity : AppCompatActivity() {
     }
 
     companion object {
-        private val TAG = FaceDetectionActivity::class.simpleName
+        private val TAG = FaceMeshDetectionActivity::class.simpleName
         fun startActivity(context: Context) {
-            Intent(context, FaceDetectionActivity::class.java).also {
+            Intent(context, FaceMeshDetectionActivity::class.java).also {
                 context.startActivity(it)
             }
         }

@@ -1,11 +1,11 @@
-package net.simplifiedcoding.mlkitsample
+package com.vijay.mlkitsample
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts.*
-import net.simplifiedcoding.mlkitsample.databinding.ActivityMainBinding
-import net.simplifiedcoding.mlkitsample.facedetector.FaceDetectionActivity
-import net.simplifiedcoding.mlkitsample.qrscanner.ScannerActivity
+import com.vijay.mlkitsample.databinding.ActivityMainBinding
+import com.vijay.mlkitsample.facedetector.FaceDetectionActivity
+import com.vijay.mlkitsample.qrscanner.ScannerActivity
 
 class MainActivity : AppCompatActivity() {
 

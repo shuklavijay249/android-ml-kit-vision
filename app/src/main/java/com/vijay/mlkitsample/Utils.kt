@@ -1,4 +1,4 @@
-package net.simplifiedcoding.mlkitsample
+package com.vijay.mlkitsample
 
 import android.app.AlertDialog
 import android.content.Context
